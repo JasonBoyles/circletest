@@ -1,0 +1,119 @@
+#!/usr/bin/env python
+
+from __future__ import print_function
+
+import argparse
+import circleclient
+import mock
+import os
+import requests
+import sys
+import time
+
+
+class CircleBuild(object):
+    def __init__(self, cci_token, org, repo, gitref='master'):
+        self.org = org
+        self.repo = repo
+        self.gitref = gitref
+        self.cci_token = cci_token
+        self.circle = circleclient.CircleClient(self.cci_token)
+
+    def trigger(self):
+        self.build = self.circle.build.trigger(self.org, self.repo, self.gitref)
+        self.build_url = self.build.get('build_url')
+        return self.build_url
+
+    def status(self):
+        build_num = self.build.get('build_num')
+        status = self.circle.build.status(self.org, self.repo, build_num)
+        return status.get('status')
+
+def new_circleclient_build_status(self, username, project, build_num):
+    """Check the status of a build and return its summary."""
+    method = 'GET'
+    url = '/project/{username}/{project}/{build_num}?circle-token={token}'.format(
+          username=username, project=project, build_num=build_num,
+          token=self.client.api_token)
+    json_data = self.client.request(method, url)
+    return json_data
+
+
+def main():
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('github_organization',
+                        help=('the Github username or organization '
+                              'under which the repo lives'))
+
+    parser.add_argument('github_repo_name', help='the name of the repo')
+
+    parser.add_argument('git_reference', nargs='?', default='master',
+                        help='git branch/sha/tag')
+
+    parser.add_argument('-p', '--poll-interval', dest='poll_interval',
+                        type=int, default=10,
+                        help=('the number of seconds to sleep '
+                              'between each build status poll'))
+
+    parser.add_argument('-t', '--cci-token', dest='cci_token',
+                        default=os.environ.get('CCI_TOKEN'),
+                        help='a valid CircleCI access token')
+
+    args = parser.parse_args()
+
+    assert args.cci_token, \
+        ('You must supply a valid CircleCI token via the CCI_TOKEN '
+         'environment variable or the --cci-token option')
+
+    """monkeypatch circleclient until pr#1 is merged, which might be never:"""
+    """ https://github.com/qba73/circleclient/pull/1 """
+    with mock.patch.object(circleclient.Build, 'status',
+                           new_circleclient_build_status, create=True):
+        build = CircleBuild(args.cci_token, args.github_organization,
+                            args.github_repo_name, gitref=args.git_reference)
+        try:
+            build_url = build.trigger()
+        except Exception:
+            print(('CircleBuild encountered an exception! '
+                   'Make sure your CircleCI token is valid '
+                   'and that you can access https://circleci.com/api/v1'),
+                  file=sys.stderr)
+            raise
+        print('build trigger submitted', file=sys.stderr)
+        print('poll interval is %i' % args.poll_interval, file=sys.stderr)
+        print('build url is %s' % build_url, file=sys.stderr)
+        print('build status: (q=queued, r=running, s=success, F=fixed, f=failed, a=aborted)', file=sys.stderr)
+        while True:
+            try:
+                status = build.status()
+            except requests.packages.urllib3.exceptions.ProtocolError:
+                print(('There was an error communicating '
+                       'with https://circleci.com/api/v1'), file=sys.stderr)
+                raise
+
+            if status == 'queued':
+                print('q', file=sys.stderr, end=''),
+            elif status == 'running':
+                print('r', file=sys.stderr, end=''),
+            elif status == 'success':
+                print('s', file=sys.stderr)
+                print('Build state is success! :D')
+                sys.exit(0)
+            elif status == 'fixed':
+                print('F', file=sys.stderr)
+                print('Build state is fixed! :D')
+                sys.exit(0)
+            elif status == 'failed':
+                print('f', file=sys.stderr)
+                print("Build state is failed :\'(", file=sys.stderr)
+                sys.exit(1)
+            elif status.startswith('abort'):
+                print('a', file=sys.stderr)
+                print("Build state is aborted :\'(", file=sys.stderr)
+                sys.exit(1)
+
+            time.sleep(args.poll_interval)
+
+if __name__ == '__main__':
+    main()
