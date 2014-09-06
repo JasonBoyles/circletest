@@ -13,7 +13,7 @@ All output is sent to stderr, so tack `2>/dev/null` on the end of your command
 if you require silence.
 
 ### return values
-0 indicates success, all values >1 failure.
+0 indicates success, all values >0 failure.
 
 ### positional arguments
   * `github_organization`: the Github username or organization under which the repo lives
