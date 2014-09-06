@@ -25,7 +25,7 @@ if you require silence.
   to sleep between each build status poll (optional, defaults to 10)
   * `-t CCI_TOKEN`, `--cci-token CCI_TOKEN`: a valid CircleCI access token
   (optional when the token is supplied in the environment variable `CCI_TOKEN`,
-    if you don't already have one, tokens can be generated downloaded from your [CircleCI account settings page](https://circleci.com/account/api) )
+    if you don't already have one, tokens can be generated or downloaded from your [CircleCI account settings page](https://circleci.com/account/api) )
 
 ### Examples
 Run tests against `https://github.com/mygitusername/mygitrepo`, `master` branch,
