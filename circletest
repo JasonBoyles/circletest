@@ -4,6 +4,7 @@ from __future__ import print_function
 
 import argparse
 import circleclient
+import json
 import mock
 import os
 import requests
@@ -12,15 +13,17 @@ import time
 
 
 class CircleBuild(object):
-    def __init__(self, cci_token, org, repo, gitref='master'):
+    def __init__(self, cci_token, org, repo, gitref='master', env={}):
         self.org = org
         self.repo = repo
         self.gitref = gitref
+        self.env = env
         self.cci_token = cci_token
         self.circle = circleclient.CircleClient(self.cci_token)
 
     def trigger(self):
-        self.build = self.circle.build.trigger(self.org, self.repo, self.gitref)
+        self.build = self.circle.build.trigger(self.org, self.repo,
+                                               self.gitref, **self.env)
         self.build_url = self.build.get('build_url')
         return self.build_url
 
@@ -29,14 +32,26 @@ class CircleBuild(object):
         status = self.circle.build.status(self.org, self.repo, build_num)
         return status.get('status')
 
+
 def new_circleclient_build_status(self, username, project, build_num):
     """Check the status of a build and return its summary."""
     method = 'GET'
-    url = '/project/{username}/{project}/{build_num}?circle-token={token}'.format(
-          username=username, project=project, build_num=build_num,
-          token=self.client.api_token)
+    template = '/project/{username}/{project}/{build_num}?circle-token={token}'
+    url = template.format(username=username, project=project,
+                          build_num=build_num, token=self.client.api_token)
     json_data = self.client.request(method, url)
     return json_data
+
+
+def env_list_to_dict(env_list=[]):
+    env_dict = {}
+    for v in env_list:
+        try:
+            (lvalue, rvalue) = v.split('=')
+        except ValueError:
+            (lvalue, rvalue) = (v, None)
+        env_dict[lvalue] = rvalue
+    return env_dict
 
 
 def main():
@@ -60,6 +75,11 @@ def main():
                         default=os.environ.get('CCI_TOKEN'),
                         help='a valid CircleCI access token')
 
+    parser.add_argument('-e', '--environment', dest='env', metavar='LVAL=RVAL',
+                        default=[], action='append', nargs='*',
+                        help=('environment variable to be set in test run '
+                              'of the form LVAL=RVAL'))
+
     args = parser.parse_args()
 
     assert args.cci_token, \
@@ -71,7 +91,8 @@ def main():
     with mock.patch.object(circleclient.Build, 'status',
                            new_circleclient_build_status, create=True):
         build = CircleBuild(args.cci_token, args.github_organization,
-                            args.github_repo_name, gitref=args.git_reference)
+                            args.github_repo_name, gitref=args.git_reference,
+                            env=env_list_to_dict(args.env))
         try:
             build_url = build.trigger()
         except Exception:
@@ -83,7 +104,8 @@ def main():
         print('build trigger submitted', file=sys.stderr)
         print('poll interval is %i' % args.poll_interval, file=sys.stderr)
         print('build url is %s' % build_url, file=sys.stderr)
-        print('build status: (q=queued, r=running, s=success, F=fixed, f=failed, a=aborted)', file=sys.stderr)
+        print(('build status: (q=queued, r=running, s=success, F=fixed, '
+               'f=failed, a=aborted)'), file=sys.stderr)
         while True:
             try:
                 status = build.status()

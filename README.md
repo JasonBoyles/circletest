@@ -26,7 +26,7 @@ if you require silence.
   * `-t CCI_TOKEN`, `--cci-token CCI_TOKEN`: a valid CircleCI access token
   (optional when the token is supplied in the environment variable `CCI_TOKEN`,
     if you don't already have one, tokens can be generated or downloaded from your [CircleCI account settings page](https://circleci.com/account/api) )
-
+  * `-e LVALUE=RVALUE`: environment variables to set when the tests are run (optional, multiple accepted; add a `-e` for each variable to be set)
 ### Examples
 Run tests against `https://github.com/mygitusername/mygitrepo`, `master` branch,
 supplying the CircleCI token via environment variable:
