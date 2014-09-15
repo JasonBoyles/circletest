@@ -76,7 +76,7 @@ def main():
                         help='a valid CircleCI access token')
 
     parser.add_argument('-e', '--environment', dest='env', metavar='LVAL=RVAL',
-                        default=[], action='append', nargs='*',
+                        default=[], action='append',
                         help=('environment variable to be set in test run '
                               'of the form LVAL=RVAL'))
 
