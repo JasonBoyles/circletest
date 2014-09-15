@@ -2,7 +2,7 @@ from distutils.core import setup
 
 setup(name='circletest',
       description='a CLI CircleCI client to trigger tests and report status',
-      version='0.1',
+      version='0.1.1',
       author='Rackspace',
       author_email='jason@duncancreek.net',
       license='Apache License (2.0)',
