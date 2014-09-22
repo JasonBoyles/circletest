@@ -1,5 +1,4 @@
 certifi==14.05.14
-circleclient==0.1.3
-mock==1.0.1
+circleclient==0.1.4
 requests==2.4.0
 wsgiref==0.1.2
