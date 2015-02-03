@@ -1,3 +1,5 @@
+[![Circle CI](https://circleci.com/gh/JasonBoyles/circletest.svg?style=svg)](https://circleci.com/gh/JasonBoyles/circletest)
+
 # circletest
 A simple script which triggers [CircleCI](https://circleci.com/) builds and
 returns a status indicating success or failure.
