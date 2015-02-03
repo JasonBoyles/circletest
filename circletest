@@ -68,7 +68,8 @@ def main():
     parser.add_argument('-p', '--poll-interval', dest='poll_interval',
                         type=int, default=10,
                         help=('the number of seconds to sleep '
-                              'between each build status poll'))
+                              'between each build status poll. '
+                              '0 disables polling.'))
 
     parser.add_argument('-t', '--cci-token', dest='cci_token',
                         default=os.environ.get('CCI_TOKEN'),
@@ -99,9 +100,10 @@ def main():
     print('build trigger submitted', file=sys.stderr)
     print('poll interval is %i' % args.poll_interval, file=sys.stderr)
     print('build url is %s' % build_url, file=sys.stderr)
-    print(('build status: (q=queued, r=running, s=success, F=fixed, '
-           'f=failed, a=aborted)'), file=sys.stderr)
-    while True:
+    if args.poll_interval > 0:
+        print(('build status: (q=queued, r=running, s=success, F=fixed, '
+               'f=failed, a=aborted)'), file=sys.stderr)
+    while args.poll_interval > 0:
         try:
             status = build.status()
         except requests.packages.urllib3.exceptions.ProtocolError:
